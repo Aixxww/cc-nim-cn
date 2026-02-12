@@ -174,9 +174,14 @@ class TelegramPlatform(MessagingPlatform):
     async def stop(self) -> None:
         """Stop the bot."""
         if self._application and self._application.updater:
-            await self._application.updater.stop()
-            await self._application.stop()
-            await self._application.shutdown()
+            try:
+                # Check if updater is running before stopping
+                if getattr(self._application.updater, 'running', False):
+                    await self._application.updater.stop()
+                await self._application.stop()
+                await self._application.shutdown()
+            except Exception as e:
+                logger.warning(f"Error during shutdown: {e}")
 
             # Shutdown our custom HTTP client if it exists
             # Use our stored reference instead of accessing bot._request (which may be wrapped)

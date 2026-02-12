@@ -16,7 +16,7 @@
 | 💬 **Telegram Bot** | 手机远程控制 Claude Code |
 | 🔄 **API 代理** | 将 Anthropic API 请求转换为 NVIDIA NIM 格式 |
 | ⚡ **高并发** | 支持多 CLI 会话同时运行 |
-| 🛡️ **自定义 HTTP 客户端** | 解决代理环境下的连接池问题 |
+| 🛡️ **无连接池问题** | 彻底解决代理环境下的连接泄漏 |
 
 ---
 
@@ -49,12 +49,14 @@ cp .env.example .env
 ```env
 NVIDIA_NIM_API_KEY=nvapi-你的密钥
 MODEL=moonshotai/kimi-k2-thinking
+HTTP_PROXY=http://127.0.0.1:7897
+HTTPS_PROXY=http://127.0.0.1:7897
 ```
 
-### 4. 启动服务
+### 4. 一键部署
 
 ```bash
-./manage.sh start
+./manage.sh install
 ```
 
 ### 5. 使用 Claude Code
@@ -101,11 +103,13 @@ ALLOWED_DIR=/Users/你的用户名/projects
 ```bash
 cd /path/to/cc-nim
 
-# 启动服务
-./manage.sh start
+# 一键部署（推荐）
+./manage.sh install
 
-# 停止服务
+# 启动/停止/重启
+./manage.sh start
 ./manage.sh stop
+./manage.sh restart
 
 # 查看状态
 ./manage.sh status
@@ -137,57 +141,75 @@ curl "https://integrate.api.nvidia.com/v1/models" > nvidia_nim_models.json
 
 ---
 
-## 后台运行（生产环境）
+## 项目结构
 
-### 一键安装和启动（推荐）
-
-```bash
-cd /Users/WiNo/cc-nim
-./install_and_start.sh
+```
+cc-nim/
+├── manage.sh              # 主管理脚本
+├── install_and_start.sh   # 一键部署脚本
+├── start_service.sh       # 启动脚本
+├── stop_service.sh        # 停止脚本
+├── server.py              # uvicorn 入口
+├── api/                   # FastAPI 应用
+│   ├── app.py            # 应用配置
+│   └── routes.py         # API 路由
+├── messaging/             # 消息平台
+│   ├── telegram.py       # Telegram Bot 集成
+│   └── telegram_http_client.py  # 自定义 HTTP 客户端（无连接池）
+├── cli/                   # CLI 会话管理
+│   └── manager.py        # 会话管理器
+├── providers/             # API 提供商
+│   └── nvidia.py         # NVIDIA NIM 集成
+├── config/                # 配置
+│   └── settings.py       # Pydantic 配置
+├── .env                   # 环境变量（需创建）
+├── .env.example           # 环境变量示例
+├── requirements.txt       # Python 依赖
+├── DEPLOY_GUIDE.md        # 详细部署指南
+└── CONNECTION_POOL_FIX.md # 连接池修复文档
 ```
 
-这个脚本会：
-- 停止所有旧服务
-- 启动后台服务
-- 配置 macOS 开机自启（LaunchAgent）
+---
 
-### 使用 screen
+## 故障排查
 
-```bash
-screen -S cc-nim
-./manage.sh start
-# 按 Ctrl+A, D 分离会话
-
-# 重新连接
-screen -r cc-nim
-```
-
-### 使用 systemd（Linux）
-
-创建 `/etc/systemd/system/cc-nim.service`:
-
-```ini
-[Unit]
-Description=cc-nim Claude Code Proxy
-After=network.target
-
-[Service]
-Type=simple
-User=your-user
-WorkingDirectory=/path/to/cc-nim
-Environment="PATH=/path/to/cc-nim/.venv/bin"
-ExecStart=/path/to/cc-nim/manage.sh start
-Restart=always
-RestartSec=10
-
-[Install]
-WantedBy=multi-user.target
-```
+### Bot 无法接收消息
 
 ```bash
-sudo systemctl enable cc-nim
-sudo systemctl start cc-nim
-sudo systemctl status cc-nim
+# 检查日志
+tail -f cc-nim.log
+
+# 重启服务
+./manage.sh restart
+```
+
+### 端口被占用
+
+```bash
+# 查看占用进程
+lsof -i :8082
+
+# 停止服务
+./manage.sh stop
+```
+
+---
+
+## 开机自启
+
+`./manage.sh install` 脚本会自动配置 macOS LaunchAgent，实现开机自启。
+
+管理 LaunchAgent：
+
+```bash
+# 启动
+launchctl start com.cc-nim
+
+# 停止
+launchctl stop com.cc-nim
+
+# 卸载
+launchctl unload ~/Library/LaunchAgents/com.cc-nim.plist
 ```
 
 ---
@@ -202,71 +224,8 @@ sudo systemctl status cc-nim
 | `ALLOWED_TELEGRAM_USER_ID` | 允许的 Telegram 用户 ID | `""` |
 | `ALLOWED_DIR` | Claude 允许访问的目录 | `""` |
 | `CLAUDE_WORKSPACE` | Agent 工作空间 | `./agent_workspace` |
-| `MAX_CLI_SESSIONS` | 最大并发会话数 | `10` |
-| `NVIDIA_NIM_RATE_LIMIT` | API 请求速率限制 | `40` |
+| `HTTP_PROXY` | HTTP 代理地址 | `""` |
 | `HTTPS_PROXY` | HTTPS 代理地址 | `""` |
-
----
-
-## 项目结构
-
-```
-cc-nim/
-├── manage.sh              # 主管理脚本
-├── start_service.sh       # 启动脚本
-├── stop_service.sh        # 停止脚本
-├── server.py              # uvicorn 入口
-├── api/                   # FastAPI 应用
-│   ├── app.py            # 应用配置
-│   └── routes.py         # API 路由
-├── messaging/             # 消息平台
-│   ├── telegram.py       # Telegram Bot 集成
-│   └── telegram_http_client.py  # 自定义 HTTP 客户端
-├── cli/                   # CLI 会话管理
-│   └── manager.py        # 会话管理器
-├── providers/             # API 提供商
-│   └── nvidia.py         # NVIDIA NIM 集成
-├── config/                # 配置
-│   └── settings.py       # Pydantic 配置
-├── .env                   # 环境变量（需创建）
-├── .env.example           # 环境变量示例
-├── requirements.txt       # Python 依赖
-└── DEPLOY_GUIDE.md        # 详细部署指南
-```
-
----
-
-## 故障排查
-
-### Bot 无法接收消息
-
-```bash
-# 检查日志
-tail -f server.log
-
-# 清理代理连接
-./manage.sh stop
-sleep 2
-./manage.sh start
-```
-
-### 端口被占用
-
-```bash
-# 查看占用进程
-lsof -i :8082
-
-# 停止服务
-./manage.sh stop
-```
-
-### 连接池超时
-
-确保 `.env` 中配置了正确的代理：
-```env
-HTTPS_PROXY=http://127.0.0.1:7897
-HTTP_PROXY=http://127.0.0.1:7897
-```
 
 ---
 
@@ -283,6 +242,13 @@ MIT License - 详见 [LICENSE](LICENSE) 文件
 ---
 
 ## 更新日志
+
+### v2.1.0 (2026-02-12)
+
+- ✅ **修复连接池问题** - 重写 HTTP 客户端，实现真正的无连接池模式
+- ✅ 彻底解决代理环境下 Bot 无法接收消息的问题
+- ✅ 长期运行稳定性大幅提升
+- ✅ 优化服务管理脚本，简化部署流程
 
 ### v2.0.0 (2026-02-12)
 
