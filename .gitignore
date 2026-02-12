@@ -29,6 +29,9 @@ nohup.out
 .DS_Store
 Thumbs.db
 
+# macOS launchd plists (contain sensitive data)
+*.plist
+
 # Temporary files
 *.tmp
 agents/

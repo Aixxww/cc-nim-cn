@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.cc-nim</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/YOUR_USERNAME/cc-nim/.venv/bin/python</string>
+        <string>-m</string>
+        <string>uvicorn</string>
+        <string>server:app</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>8082</string>
+        <string>--log-level</string>
+        <string>info</string>
+    </array>
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USERNAME/cc-nim</string>
+    <key>RunAtLoad</key>
+    <true/>
+    <key>StandardOutPath</key>
+    <string>/Users/YOUR_USERNAME/cc-nim/launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOUR_USERNAME/cc-nim/launchd.err</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>PYTHONPATH</key>
+        <string>/Users/YOUR_USERNAME/cc-nim</string>
+        <key>HTTP_PROXY</key>
+        <string>http://127.0.0.1:7897</string>
+        <key>HTTPS_PROXY</key>
+        <string>http://127.0.0.1:7897</string>
+        <key>TELEGRAM_BOT_TOKEN</key>
+        <string>YOUR_TELEGRAM_BOT_TOKEN</string>
+        <key>ALLOWED_TELEGRAM_USER_ID</key>
+        <string>YOUR_TELEGRAM_USER_ID</string>
+        <key>NVIDIA_NIM_API_KEY</key>
+        <string>YOUR_NVIDIA_NIM_API_KEY</string>
+        <key>MODEL</key>
+        <string>z-ai/glm4.7</string>
+        <key>CLAUDE_WORKSPACE</key>
+        <string>/Users/YOUR_USERNAME/cc-nim/agent_workspace</string>
+        <key>ALLOWED_DIR</key>
+        <string>/Users/YOUR_USERNAME</string>
+    </dict>
+</dict>
+</plist>
