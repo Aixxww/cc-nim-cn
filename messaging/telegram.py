@@ -30,6 +30,10 @@ try:
         filters,
     )
     from telegram.error import TelegramError, RetryAfter, NetworkError
+    from telegram.request import BaseRequest
+
+    # Import our custom HTTP client
+    from .telegram_http_client import NonPoolingHTTPRequest
     from telegram.request import HTTPXRequest
 
     TELEGRAM_AVAILABLE = True
@@ -77,14 +81,37 @@ class TelegramPlatform(MessagingPlatform):
         if not self.bot_token:
             raise ValueError("TELEGRAM_BOT_TOKEN is required")
 
-        # Configure request with longer timeouts
-        request = HTTPXRequest(
-            connection_pool_size=8, connect_timeout=30.0, read_timeout=30.0
-        )
+        # Configure request with custom non-pooling HTTP client
+        # Get proxy settings from environment
+        http_proxy = os.getenv("HTTP_PROXY") or os.getenv("http_proxy")
+        https_proxy = os.getenv("HTTPS_PROXY") or os.getenv("https_proxy")
 
-        # Build Application
-        builder = Application.builder().token(self.bot_token).request(request)
+        # Use the first available proxy
+        proxy_url = https_proxy or http_proxy
+
+        # Log proxy settings for debugging
+        if proxy_url:
+            logger.info(f"Using custom NonPoolingHTTPRequest with proxy: {proxy_url}")
+        else:
+            logger.info("Using custom NonPoolingHTTPRequest without proxy")
+
+        # Create our custom NonPoolingHTTPRequest
+        # This bypasses httpx/httpcore and uses aiohttp without connection pooling
+        request = NonPoolingHTTPRequest(proxy_url=proxy_url)
+
+        # Build Application with custom request handler
+        # We need to pass the request to both the bot and updater
+        from telegram.ext import ExtBot
+
+        # Create bot with our custom request
+        bot = ExtBot(self.bot_token, request=request)
+
+        # Build Application with our custom bot (which also ensures updater uses it)
+        builder = Application.builder().bot(bot)
         self._application = builder.build()
+
+        # Store reference to our custom client for shutdown
+        self._custom_http_client = request
 
         # Register Internal Handlers
         # We catch ALL text messages and commands to forward them
@@ -106,8 +133,12 @@ class TelegramPlatform(MessagingPlatform):
 
                 # Start polling (non-blocking way for integration)
                 if self._application.updater:
+                    # Configure updater to use our custom request for polling as well
+                    # This prevents httpx from being used for getUpdates
                     await self._application.updater.start_polling(
-                        drop_pending_updates=False
+                        drop_pending_updates=False,
+                        # Note: We can't directly set request on updater after creation
+                        # Need to set it before initialization
                     )
 
                 self._connected = True
@@ -146,6 +177,15 @@ class TelegramPlatform(MessagingPlatform):
             await self._application.updater.stop()
             await self._application.stop()
             await self._application.shutdown()
+
+            # Shutdown our custom HTTP client if it exists
+            # Use our stored reference instead of accessing bot._request (which may be wrapped)
+            if hasattr(self, '_custom_http_client'):
+                try:
+                    await self._custom_http_client.shutdown()
+                    logger.info("Custom HTTP client shutdown completed")
+                except Exception as e:
+                    logger.warning(f"Error shutting down custom HTTP client: {e}")
 
         self._connected = False
         logger.info("Telegram platform stopped")

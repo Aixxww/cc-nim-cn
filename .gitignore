@@ -47,3 +47,19 @@ ENV/
 agent_workspace/
 *.session
 *-journal
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Temporary files
+*.pid
+*.tmp
+cc-nim*.log
+cc-nim*.out
+server*.log
+server*.jsonl
+
+# Telegram test data
+test_*.log
