@@ -19,7 +19,7 @@ class TestSettings:
         assert isinstance(settings.nvidia_nim_rate_limit, int)
         assert isinstance(settings.nvidia_nim_rate_window, int)
         assert isinstance(settings.fast_prefix_detection, bool)
-        assert isinstance(settings.max_cli_sessions, int)
+        assert isinstance(settings.enable_network_probe_mock, bool)
 
     def test_get_settings_cached(self):
         """Test get_settings returns cached instance."""

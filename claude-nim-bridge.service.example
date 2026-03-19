@@ -1,0 +1,52 @@
+[Unit]
+# Claude NIM Bridge - Service Configuration for Linux (systemd)
+# Systemd service file for running Claude NIM Bridge as a background service
+
+Description=Claude NIM Bridge - Anthropic to NVIDIA NIM Proxy
+After=network.target
+
+# Service configuration
+[Service]
+Type=simple
+User=YOUR_USERNAME
+Group=YOUR_GROUP
+WorkingDirectory=/path/to/claude-nim-bridge
+
+# Python executable path (update to your actual path)
+ExecStart=/path/to/claude-nim-bridge/.venv/bin/python -m uvicorn server:app --host 0.0.0.0 --port 8082 --log-level info
+
+# Restart configuration
+Restart=on-failure
+RestartSec=5
+StartLimitInterval=60
+
+# Resource limits
+LimitNOFILE=65536
+MemoryLimit=512M
+
+# Logging
+StandardOutput=append:/var/log/claude-nim-bridge/output.log
+StandardError=append:/var/log/claude-nim-bridge/error.log
+SyslogIdentifier=claude-nim-bridge
+
+# Environment variables - either load from .env file or set below
+Environment="PATH=/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/path/to/claude-nim-bridge"
+
+# REQUIRED: NVIDIA NIM API configuration
+# Replace the line below with your actual API key
+Environment="NVIDIA_NIM_API_KEY=YOUR_NVIDIA_NIM_API_KEY"
+
+# Optional: Model and rate limit settings
+Environment="MODEL=moonshotai/kimi-k2-thinking"
+Environment="NVIDIA_NIM_RATE_LIMIT=40"
+
+# Optional: Proxy settings (if needed)
+# Environment="HTTP_PROXY=http://127.0.0.1:7890"
+# Environment="HTTPS_PROXY=http://127.0.0.1:7890"
+
+# Security options
+NoNewPrivileges=false
+
+[Install]
+WantedBy=multi-user.target

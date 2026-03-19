@@ -1,10 +1,12 @@
-"""Dependency injection for FastAPI."""
+"""Dependency injection for FastAPI - memory-safe implementation."""
 
+import logging
 from typing import Optional
 from config.settings import Settings, get_settings as _get_settings, NVIDIA_NIM_BASE_URL
 from providers.base import ProviderConfig
 from providers.nvidia_nim import NvidiaNimProvider
 
+logger = logging.getLogger(__name__)
 
 # Global provider instance (singleton)
 _provider: Optional[NvidiaNimProvider] = None
@@ -16,25 +18,36 @@ def get_settings() -> Settings:
 
 
 def get_provider() -> NvidiaNimProvider:
-    """Get or create the NvidiaNimProvider instance."""
+    """Get or create the NvidiaNimProvider instance.
+
+    Uses singleton pattern to ensure only one client exists per application.
+    """
     global _provider
     if _provider is None:
         settings = get_settings()
         config = ProviderConfig(
             api_key=settings.nvidia_nim_api_key,
-            base_url=NVIDIA_NIM_BASE_URL,  # Use constant, not from settings
+            base_url=NVIDIA_NIM_BASE_URL,
             rate_limit=settings.nvidia_nim_rate_limit,
             rate_window=settings.nvidia_nim_rate_window,
         )
         _provider = NvidiaNimProvider(config)
+        logger.info("Provider singleton created")
     return _provider
 
 
 async def cleanup_provider():
-    """Cleanup provider resources."""
+    """Cleanup provider resources.
+
+    Called during application shutdown to properly close connections
+    and prevent connection leaks.
+    """
     global _provider
     if _provider:
-        client = getattr(_provider, "_client", None)
-        if client and hasattr(client, "aclose"):
-            await client.aclose()
-    _provider = None
+        try:
+            await _provider.close()
+        except Exception as e:
+            logger.error(f"Error during provider cleanup: {e}")
+        finally:
+            _provider = None
+            logger.info("Provider cleanup completed")

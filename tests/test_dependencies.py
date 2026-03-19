@@ -45,7 +45,7 @@ async def test_cleanup_provider():
 
         await cleanup_provider()
 
-        provider._client.aclose.assert_called_once()
+        provider._client.close.assert_called_once()
         # The singleton should be None now, but since we patched the local _provider
         # we need to be careful how we verify.
         # Actually within the same test session without the patch, it would be None.

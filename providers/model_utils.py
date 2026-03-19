@@ -3,6 +3,7 @@
 Centralizes model name mapping logic to avoid duplication across the codebase.
 """
 
+import json
 import os
 from typing import Optional
 
@@ -23,9 +24,12 @@ def strip_provider_prefixes(model: str) -> str:
     Returns:
         Model name without provider prefix
     """
+    if not model:
+        return "moonshotai/kimi-k2-thinking"
+
     for prefix in _PROVIDER_PREFIXES:
         if model.startswith(prefix):
-            return model[len(prefix) :]
+            return model[len(prefix):]
     return model
 
 
@@ -58,6 +62,10 @@ def normalize_model_name(model: str, default_model: Optional[str] = None) -> str
     Returns:
         Normalized model name (original if not a Claude model, mapped if Claude)
     """
+    # Validate input
+    if not model or not isinstance(model, str):
+        model = "claude-opus-4-6"
+
     # Strip provider prefixes
     clean = strip_provider_prefixes(model)
 
@@ -75,13 +83,10 @@ def get_original_model(model: str) -> str:
     """
     Get the original model name, storing it before normalization.
 
-    Convenience function that returns the input unchanged, intended to be
-    called alongside normalize_model_name to capture the original.
-
     Args:
         model: The model name
 
     Returns:
-        The model name unchanged (for documentation purposes)
+        The model name unchanged
     """
     return model

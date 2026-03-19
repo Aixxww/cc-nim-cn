@@ -139,19 +139,3 @@ async def root(settings: Settings = Depends(get_settings)):
 async def health():
     """Health check endpoint."""
     return {"status": "healthy"}
-
-
-@router.post("/stop")
-async def stop_cli(request: Request):
-    """Stop all CLI sessions and pending tasks."""
-    handler = getattr(request.app.state, "message_handler", None)
-    if not handler:
-        # Fallback if messaging not initialized
-        cli_manager = getattr(request.app.state, "cli_manager", None)
-        if cli_manager:
-            await cli_manager.stop_all()
-            return {"status": "stopped", "source": "cli_manager"}
-        return HTTPException(status_code=503, detail="Messaging system not initialized")
-
-    count = await handler.stop_all_tasks()
-    return {"status": "stopped", "cancelled_count": count}

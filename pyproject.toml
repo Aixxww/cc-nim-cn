@@ -1,7 +1,7 @@
 [project]
-name = "cc-nim"
-version = "2.0.0"
-description = "Proxy that translates Claude Code CLI (Anthropic API) to NVIDIA NIM"
+name = "claude-nim-bridge"
+version = "2.2.0"
+description = "Proxy that translates Anthropic API to NVIDIA NIM for Claude Code"
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -12,9 +12,7 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "tiktoken>=0.7.0",
     "websockets>=13.0",
-    "python-telegram-bot>=21.0",
     "pydantic-settings>=2.12.0",
-    "aiolimiter>=1.2.1",
     "openai>=2.16.0",
     "aiohttp>=3.13.3",
 ]

@@ -69,9 +69,9 @@ async def test_build_request_body(nim_provider):
     assert body["messages"][0]["role"] == "system"
     assert body["messages"][0]["content"] == "System prompt"
 
-    assert "extra_body" in body
-    assert "thinking" in body["extra_body"]
-    assert body["extra_body"]["thinking"]["type"] == "enabled"
+    # extra_body contents are merged into body
+    assert "thinking" in body
+    assert body["thinking"]["type"] == "enabled"
 
 
 @pytest.mark.asyncio

@@ -1,92 +1,119 @@
 #!/bin/bash
-# cc-nim 后台服务安装和启动脚本
+# Claude NIM Bridge - One-click Install and Start Script
+
+set -e
 
 cd "$(dirname "$0")"
 
+PROJECT_NAME="claude-nim-bridge"
+PORT=8082
+
 echo "======================================"
-echo "  cc-nim 后台服务安装和启动"
+echo "  Claude NIM Bridge - Install"
 echo "======================================"
 echo ""
 
-# 1. 强制停止所有运行中的服务
-echo "📋 第一步：停止旧服务..."
+# 1. Stop any existing services
+echo "📋 Step 1: Stopping old services..."
 for pid in $(pgrep -f "uvicorn.*server:app" 2>/dev/null); do
     kill $pid 2>/dev/null
 done
 sleep 2
-echo "✅ 旧服务已停止"
+echo "✅ Old services stopped"
 echo ""
 
-# 2. 清理旧日志
-rm -f cc-nim.log launchd.log launchd.err
-
-# 3. 加载环境变量
+# 2. Load environment variables
 if [ -f .env ]; then
     set -a && source .env && set +a
-    echo "✅ 环境变量已加载"
+    echo "✅ Environment variables loaded"
 fi
 echo ""
 
-# 4. 启动后台服务
-echo "📋 第二步：启动后台服务..."
-nohup .venv/bin/python -m uvicorn server:app --host 0.0.0.0 --port 8082 --log-level info >> cc-nim.log 2>&1 &
-CC_NIM_PID=$!
-echo $CC_NIM_PID > cc-nim.pid
+# 3. Start background service
+echo "📋 Step 2: Starting background service..."
+nohup .venv/bin/python -m uvicorn server:app --host 0.0.0.0 --port $PORT --log-level info > service.log 2>&1 &
+SERVICE_PID=$!
+echo $SERVICE_PID > service.pid
 sleep 5
-echo "✅ 后台服务已启动 (PID: $CC_NIM_PID)"
+echo "✅ Background service started (PID: $SERVICE_PID)"
 echo ""
 
-# 5. 验证服务（重试机制）
-echo "⏳ 等待服务启动..."
+# 4. Verify service (with retry)
+echo "⏳ Waiting for service to start..."
 for i in {1..10}; do
-    if curl -s http://localhost:8082/health > /dev/null 2>&1; then
-        echo "✅ 服务验证成功"
+    if curl -s http://localhost:$PORT/health > /dev/null 2>&1; then
+        echo "✅ Service verification successful"
         break
     fi
     if [ $i -eq 10 ]; then
-        echo "⚠️ 服务验证超时，但可能已启动"
-        cat cc-nim.log 2>/dev/null
+        echo "⚠️ Service verification timeout, but may have started"
+        tail -20 service.log 2>/dev/null
     fi
     sleep 1
 done
 echo ""
 
-# 6. 配置开机自启
-echo "📋 第三步：配置开机自启..."
-if [ -f "com.cc-nim.plist" ]; then
-    mkdir -p ~/Library/LaunchAgents
-    cp com.cc-nim.plist ~/Library/LaunchAgents/
+# 5. Configure auto-start (LaunchAgent)
+echo "📋 Step 3: Configuring auto-start..."
+CONFIG_FILE="com.claude-nim-bridge.plist"
 
-    # 卸载旧的
-    launchctl unload ~/Library/LaunchAgents/com.cc-nim.plist 2>/dev/null
+if [ -f "$CONFIG_FILE.example" ]; then
+    # Create and configure LaunchAgent
+    mkdir -p ~/Library/LaunchAgents
+
+    PROJECT_DIR=$(pwd)
+    CURRENT_USER=$(whoami)
+
+    # Copy example and replace paths
+    sed "s|/Users/YOUR_USERNAME/claude-nim-bridge|$PROJECT_DIR|g" "$CONFIG_FILE.example" | \
+    sed "s|/Users/YOUR_USERNAME/.claude-nim-bridge|$PROJECT_DIR|g" | \
+    sed "s|YOUR_USERNAME|$CURRENT_USER|g" > ~/Library/LaunchAgents/$CONFIG_FILE
+
+    echo "✅ LaunchAgent configured: ~/Library/LaunchAgents/$CONFIG_FILE"
+
+    # Unload old one if exists
+    launchctl unload ~/Library/LaunchAgents/$CONFIG_FILE 2>/dev/null || true
     sleep 1
 
-    # 加载新的
-    if launchctl load ~/Library/LaunchAgents/com.cc-nim.plist 2>/dev/null; then
-        echo "✅ 开机自启已配置"
+    # Load new one
+    if launchctl load ~/Library/LaunchAgents/$CONFIG_FILE 2>/dev/null; then
+        echo "✅ Auto-start configured successfully"
+        echo ""
+        echo "⚠️ Note: Make sure your NVIDIA_NIM_API_KEY is set in:"
+        echo "   1. ~/.claude-nim-bridge/.env (recommended)"
+        echo "   2. ~/Library/LaunchAgents/$CONFIG_FILE"
     else
-        echo "⚠️ LaunchAgent 加载失败"
+        echo "⚠️ LaunchAgent load failed"
     fi
 else
-    echo "⚠️ 未找到 com.cc-nim.plist"
+    echo "⚠️ $CONFIG_FILE.example not found"
 fi
 echo ""
 
 echo "======================================"
-echo "  ✅ 部署完成！"
+echo "  ✅ Installation Complete!"
 echo "======================================"
 echo ""
-echo "📋 服务信息:"
-echo "  PID: $CC_NIM_PID"
-echo "  端口: 8082"
-echo "  日志: cc-nim.log"
+echo "📋 Service Info:"
+echo "  PID: $SERVICE_PID"
+echo "  Port: $PORT"
+echo "  Log: service.log"
 echo ""
-echo "🔧 管理命令:"
-echo "  查看状态: ./manage.sh status"
-echo "  查看日志: ./manage.sh logs"
-echo "  重启服务: ./manage.sh restart"
+echo "🔧 Management Commands:"
+echo "  Status:  ./manage.sh status"
+echo "  Logs:    ./manage.sh logs"
+echo "  Restart: ./manage.sh restart"
+echo "  Stop:    ./manage.sh stop"
 echo ""
-echo "🚀 开机自启:"
-echo "  LaunchAgent 已配置，电脑重启后自动启动"
-echo "  手动管理: launchctl {start|stop|unload} com.cc-nim"
+echo "🚀 Auto-start:"
+echo "  LaunchAgent configured, will auto-start on login"
+echo "  Manual: launchctl {start|stop|unload} com.claude-nim-bridge"
+echo ""
+echo "🔍 Test the service:"
+echo "  curl http://localhost:$PORT/health"
+echo ""
+echo "⚙️ Configure Claude Code:"
+echo "  export ANTHROPIC_AUTH_TOKEN=ccnim"
+echo "  export ANTHROPIC_BASE_URL=http://localhost:$PORT"
+echo "  claude"
 echo ""

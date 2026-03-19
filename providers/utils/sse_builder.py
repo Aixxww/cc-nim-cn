@@ -65,7 +65,8 @@ class SSEBuilder:
     def _format_event(self, event_type: str, data: Dict[str, Any]) -> str:
         """Format as SSE string."""
         event_str = f"event: {event_type}\ndata: {json.dumps(data)}\n\n"
-        logger.debug(f"SSE_EVENT: {event_type} - {event_str.strip()}")
+        # Disabled to prevent massive log growth - each SSE event was being logged
+        # logger.debug(f"SSE_EVENT: {event_type} - {event_str.strip()}")
         return event_str
 
     # Message lifecycle events

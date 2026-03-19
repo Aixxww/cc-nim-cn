@@ -135,9 +135,17 @@ def extract_command_prefix(command: str) -> str:
             return first_word
         return first_word if not env_prefix else " ".join(env_prefix) + " " + first_word
 
-    except ValueError:
+    except ValueError as e:
         # Fall back to simple split if shlex fails
-        return command.split()[0] if command.split() else "none"
+        logger.debug(f"shlex parsing failed: {e}")
+        try:
+            parts = command.split()
+            return parts[0] if parts else "none"
+        except Exception:
+            return "none"
+    except Exception as e:
+        logger.debug(f"Unexpected error in command extraction: {e}")
+        return "none"
 
 
 def is_prefix_detection_request(request_data: MessagesRequest) -> Tuple[bool, str]:

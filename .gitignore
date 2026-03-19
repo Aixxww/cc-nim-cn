@@ -1,38 +1,5 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-.venv/
-venv/
-ENV/
-env/
-
-# Environment
 .env
-.env.local
-
-# Logs
+node_modules/
+.DS_Store
 *.log
 *.pid
-nohup.out
-
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
-
-# OS
-.DS_Store
-Thumbs.db
-
-# macOS launchd plists (contain sensitive data)
-*.plist
-
-# Temporary files
-*.tmp
-agents/
-agent_workspace/

@@ -64,15 +64,6 @@ class Settings(BaseSettings):
     nvidia_nim_reasoning_effort: str = "high"
     nvidia_nim_include_reasoning: bool = True
 
-    # ==================== Bot Wrapper Config ====================
-    telegram_bot_token: Optional[str] = None
-    telegram_api_id: Optional[str] = None  # Deprecated
-    telegram_api_hash: Optional[str] = None  # Deprecated
-    allowed_telegram_user_id: Optional[str] = None
-    claude_workspace: str = "./agent_workspace"
-    allowed_dir: str = ""
-    max_cli_sessions: int = 10
-
     # ==================== Server ====================
     host: str = "0.0.0.0"
     port: int = 8082
@@ -86,14 +77,7 @@ class Settings(BaseSettings):
         return int(v)
 
     # Handle empty strings for optional string fields
-    @field_validator(
-        "nvidia_nim_stop",
-        "telegram_bot_token",
-        "telegram_api_id",
-        "telegram_api_hash",
-        "allowed_telegram_user_id",
-        mode="before",
-    )
+    @field_validator("nvidia_nim_stop", mode="before")
     @classmethod
     def parse_optional_str(cls, v):
         if v == "":

@@ -90,7 +90,8 @@ class RequestBuilderMixin:
             body["tools"] = AnthropicToOpenAIConverter.convert_tools(request_data.tools)
 
         # Handle non-standard parameters via extra_body
-        extra_params = request_data.extra_body.copy() if request_data.extra_body else {}
+        extra_body = getattr(request_data, "extra_body", None)
+        extra_params = extra_body.copy() if extra_body else {}
 
         # Handle thinking/reasoning mode
         if request_data.thinking and getattr(request_data.thinking, "enabled", True):
@@ -101,12 +102,13 @@ class RequestBuilderMixin:
                 {"thinking": True, "reasoning_split": True, "clear_thinking": False},
             )
 
+        # Merge extra parameters into body
         if extra_params:
-            body["extra_body"] = extra_params
+            body.update(extra_params)
 
-        # Apply NIM defaults
+        # Apply NIM defaults (only if not already set)
         for key, val in self._nim_params.items():
-            if key not in body and key not in extra_params:
+            if key not in body:
                 body[key] = val
 
         return body
@@ -210,13 +212,17 @@ class ResponseConverterMixin:
             for tc in message["tool_calls"]:
                 try:
                     args = json.loads(tc["function"]["arguments"])
-                except Exception:
-                    args = tc["function"].get("arguments", {})
+                except json.JSONDecodeError as e:
+                    logger.warning(f"Failed to parse tool arguments: {e}, using raw string")
+                    args = {"raw_arguments": tc["function"].get("arguments", "")}
+                except Exception as e:
+                    logger.warning(f"Unexpected error parsing tool arguments: {e}")
+                    args = {"raw_arguments": tc["function"].get("arguments", "")}
                 content.append(
                     {
                         "type": "tool_use",
-                        "id": tc["id"],
-                        "name": tc["function"]["name"],
+                        "id": tc.get("id", f"tool_{str(hash(tc))}"),
+                        "name": tc["function"].get("name", "unknown"),
                         "input": args,
                     }
                 )

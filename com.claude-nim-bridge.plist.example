@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <!-- Service Label -->
+    <key>Label</key>
+    <string>com.claude-nim-bridge</string>
+
+    <!-- Program to run -->
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Users/YOUR_USERNAME/.claude-nim-bridge/.venv/bin/python</string>
+        <string>-m</string>
+        <string>uvicorn</string>
+        <string>server:app</string>
+        <string>--host</string>
+        <string>0.0.0.0</string>
+        <string>--port</string>
+        <string>8082</string>
+        <string>--log-level</string>
+        <string>info</string>
+    </array>
+
+    <!-- Working directory -->
+    <key>WorkingDirectory</key>
+    <string>/Users/YOUR_USERNAME/claude-nim-bridge</string>
+
+    <!-- Auto-start on login -->
+    <key>RunAtLoad</key>
+    <true/>
+
+    <!-- Keep alive: restart if crashed -->
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+
+    <!-- Standard output/error paths -->
+    <key>StandardOutPath</key>
+    <string>/Users/YOUR_USERNAME/claude-nim-bridge/launchd.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/YOUR_USERNAME/claude-nim-bridge/launchd.err</string>
+
+    <!-- Environment variables -->
+    <key>EnvironmentVariables</key>
+    <dict>
+        <!-- Update paths as needed -->
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+
+        <!-- Load environment variables from .env instead of hardcoding here -->
+        <!-- Or uncomment and fill in the values below:
+
+        <!-- NVIDIA NIM Configuration (REQUIRED) -->
+        <key>NVIDIA_NIM_API_KEY</key>
+        <string>YOUR_NVIDIA_NIM_API_KEY</string>
+
+        <key>MODEL</key>
+        <string>moonshotai/kimi-k2-thinking</string>
+
+        <!-- Rate limiting -->
+        <key>NVIDIA_NIM_RATE_LIMIT</key>
+        <string>40</string>
+
+        <!-- Optional: Proxy settings -->
+        <!--
+        <key>HTTP_PROXY</key>
+        <string>http://127.0.0.1:7890</string>
+        <key>HTTPS_PROXY</key>
+        <string>http://127.0.0.1:7890</string>
+        -->
+
+        -->
+    </dict>
+
+    <!-- Process type: Interactive or Background -->
+    <key>ProcessType</key>
+    <string>Background</string>
+</dict>
+</plist>
