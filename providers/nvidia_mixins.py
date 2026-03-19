@@ -91,20 +91,21 @@ class RequestBuilderMixin:
 
         # Handle non-standard parameters via extra_body
         extra_body = getattr(request_data, "extra_body", None)
-        extra_params = extra_body.copy() if extra_body else {}
+        extra_body_params = extra_body.copy() if extra_body else {}
 
         # Handle thinking/reasoning mode
+        # Put thinking parameters in extra_body for non-standard NIM parameters
         if request_data.thinking and getattr(request_data.thinking, "enabled", True):
-            extra_params.setdefault("thinking", {"type": "enabled"})
-            extra_params.setdefault("reasoning_split", True)
-            extra_params.setdefault(
+            extra_body_params.setdefault("thinking", {"type": "enabled"})
+            extra_body_params.setdefault("reasoning_split", True)
+            extra_body_params.setdefault(
                 "chat_template_kwargs",
                 {"thinking": True, "reasoning_split": True, "clear_thinking": False},
             )
 
-        # Merge extra parameters into body
-        if extra_params:
-            body.update(extra_params)
+        # Pass extra_body_params to OpenAI client as extra_body
+        if extra_body_params:
+            body["extra_body"] = extra_body_params
 
         # Apply NIM defaults (only if not already set)
         for key, val in self._nim_params.items():
